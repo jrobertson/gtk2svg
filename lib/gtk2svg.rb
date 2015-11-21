@@ -9,6 +9,28 @@ require 'dom_render'
 # Description: Experimental gem to render SVG within an GTK2 application. 
 #           Currently it can only render rectangles along with the fill colour.
 
+
+module SVG
+  class Element
+
+    attr_reader :style
+
+    def initialize(attributes, style)
+
+      @h = {x: '0', y: '0'}.merge attributes 
+
+      @style = {fill: 'black'}
+      @style.merge!(style) if attributes[:style]
+
+    end
+
+    def attributes()
+      @h
+    end
+
+  end
+end
+
 module Gtk2SVG
 
   class Render < DomRender
@@ -29,6 +51,18 @@ module Gtk2SVG
       height = h[:ry].to_i * 2
 
       [:draw_arc, [x, y, width, height], style, render_all(e)]
+    end    
+    
+    def line(e, attributes, style)
+
+      e2 = SVG::Element.new attributes, style
+      h = e2.attributes
+      style = e2.style
+      style[:stroke_width] = style.delete(:'stroke-width') || '3'
+
+      x1, y1, x2, y2 = %i(x y x2 y2).map{|x| h[x].to_i }
+
+      [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
     end    
 
     def rect(e, attributes, style)
@@ -78,6 +112,17 @@ module Gtk2SVG
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_arc(gc, 1, x, y, width, height, 0, 64 * 360)
     end    
+    
+    def draw_line(args)
+
+      coords, style = args
+
+      x1, y1, x2, y2 = coords
+      gc = gc_ini(stroke: style[:stroke] || :none)
+      gc.set_line_attributes(style[:stroke_width].to_i, Gdk::GC::LINE_SOLID, \
+                                    Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
+      @area.window.draw_line(gc, x1, y1, x2, y2)
+    end    
 
     def draw_rectangle(args)
 
@@ -120,11 +165,8 @@ module Gtk2SVG
         x, *remaining = rawx
 
         if x.is_a? Symbol then
-          puts 'sym'
-          puts 'remaining: ' + remaining.inspect
-          method(x).call(args=remaining[0..-2])
+          method(x).call(args=remaining)
         elsif x.is_a? String then
-          puts 'ff'
           draw remaining
         elsif x.is_a? Array
           draw remaining
@@ -155,9 +197,10 @@ module Gtk2SVG
       colour
     end
 
-    def gc_ini(fill: 'black')
+    def gc_ini(fill: nil, stroke: nil)
       gc = Gdk::GC.new(area.window)
-      gc.set_foreground(set_colour(fill)) unless fill == :none
+      colour = fill || stroke
+      gc.set_foreground(set_colour(colour)) unless colour == :none
       gc
     end
 
