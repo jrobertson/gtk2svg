@@ -9,27 +9,6 @@ require 'dom_render'
 # Description: Experimental gem to render SVG within an GTK2 application. 
 #           Currently it can only render rectangles along with the fill colour.
 
-module SVG
-  class Element
-
-    attr_reader :style
-
-    def initialize(attributes, style)
-
-      @h = {x: '0', y: '0'}.merge attributes 
-
-      @style = {fill: 'black'}
-      @style.merge!(style) if attributes[:style]
-
-    end
-
-    def attributes()
-      @h
-    end
-
-  end
-end
-
 module Gtk2SVG
 
   class Render < DomRender
@@ -64,6 +43,19 @@ module Gtk2SVG
 
       [:draw_rectangle, [x1, y1, x2, y2], style, render_all(e)]
     end
+    
+    def text(e, attributes, style)
+
+      e2 = SVG::Element.new attributes, style
+      h = e2.attributes
+      style = e2.style.merge({font_size: '20'})
+
+
+      x, y, fill = %i(x y fill).map{|x| h[x] }
+      style.merge!({fill: fill})
+
+      [:draw_layout, [x.to_i, y.to_i], e.text, style, render_all(e)]
+    end    
 
   end
 
@@ -95,6 +87,22 @@ module Gtk2SVG
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_rectangle(gc, 1, x1, y1, x2, y2)
     end
+    
+    def draw_layout(args)
+
+      coords, text, style = args
+
+      x, y = coords
+      
+      
+      layout = Pango::Layout.new(Gdk::Pango.context)
+      layout.font_description = Pango::FontDescription.\
+                                             new('Sans ' + style[:font_size])      
+      layout.text = text
+            
+      gc = gc_ini(fill: style[:fill] || :none)
+      @area.window.draw_layout(gc, x, y, layout)
+    end    
 
     def window(args)
     end
@@ -112,8 +120,11 @@ module Gtk2SVG
         x, *remaining = rawx
 
         if x.is_a? Symbol then
-          method(x).call(args=remaining.take(2))
+          puts 'sym'
+          puts 'remaining: ' + remaining.inspect
+          method(x).call(args=remaining[0..-2])
         elsif x.is_a? String then
+          puts 'ff'
           draw remaining
         elsif x.is_a? Array
           draw remaining
@@ -152,26 +163,6 @@ module Gtk2SVG
 
 
   end
-end
-
-
-if __FILE__ == $0 then
-
-  # Read an SVG file
-  s = File.read(ARGV[0])
-
-  area = Gtk::DrawingArea.new
-
-  area.signal_connect("expose_event") do
-
-    drawing = Gtk2SVG::DrawingInstructions.new area
-    drawing.render Gtk2SVG::Render.new(s).to_a
-
-  end
-
-  Gtk::Window.new.add(area).show_all
-  Gtk.main
-
 end
 
 
