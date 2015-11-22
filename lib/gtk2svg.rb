@@ -210,7 +210,8 @@ module Gtk2SVG
   
   class Main
     
-    attr_accessor :doc. :svg
+    attr_accessor :doc, :svg
+    attr_reader :width, :height
     
     def initialize(svg)
       
@@ -218,13 +219,23 @@ module Gtk2SVG
       @doc = Svgle.new(svg)
       @area = area = Gtk::DrawingArea.new
       
+      window = Gtk::Window.new
+      width, height = %i(width height).map{|x| @doc.root.attributes[x] }
+      
+      if width and height then
+        @width, @height = width.to_i, height.to_i
+        window.set_default_size(@width, @height)
+      end
+      
       area.signal_connect("expose_event") do      
         a = Render.new(@doc).to_a
         drawing = DrawingInstructions.new area
         drawing.render a
       end
       
-      Gtk::Window.new.add(area).show_all
+      window.add(area).show_all
+      window.show_all.signal_connect("destroy"){Gtk.main_quit}
+
       Thread.new {Gtk.main  }
     end
     
