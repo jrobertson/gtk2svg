@@ -165,7 +165,7 @@ module Gtk2SVG
     end
 
     def gc_ini(fill: nil, stroke: nil)
-      gc = Gdk::GC.new(area.window)
+      gc = Gdk::GC.new(@area.window)
       colour = fill || stroke
       gc.set_foreground(set_colour(colour)) unless colour == :none
       gc
@@ -182,7 +182,7 @@ module Gtk2SVG
     def initialize(svg)
       
       @svg = svg
-      @doc = Svgle.new(svg)
+      @doc = Svgle.new(svg, callback: self)
       @area = area = Gtk::DrawingArea.new
       
       window = Gtk::Window.new
@@ -211,7 +211,7 @@ module Gtk2SVG
     
     def svg=(svg)
       @svg = svg
-      @doc = Svgle.new(svg)
+      @doc = Svgle.new(svg, callback: self)
     end
     
   end
