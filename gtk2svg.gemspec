@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'gtk2svg'
-  s.version = '0.1.3'
+  s.version = '0.2.0'
   s.summary = 'Experimental gem to render SVG using GTK2'
   s.authors = ['James Robertson']
   s.files = Dir['lib/gtk2svg.rb']

@@ -206,25 +206,39 @@ module Gtk2SVG
 
 
   end
+  
+  class Main
+    
+    attr_accessor :svg
+    
+    def initialize(svg)
+      
+      @svg = svg
+      @area = area = Gtk::DrawingArea.new
+      
+      area.signal_connect("expose_event") do      
+        a = Render.new(@svg).to_a
+        drawing = DrawingInstructions.new area
+        drawing.render a
+      end
+      
+      Gtk::Window.new.add(area).show_all
+      Thread.new {Gtk.main  }
+    end
+    
+    def refresh()
+      @area.queue_draw
+    end
+    
+  end
 end
-
 
 
 if __FILE__ == $0 then
 
   # Read an SVG file
-  s = File.read(ARGV[0])
+  svg = File.read(ARGV[0])
 
-  area = Gtk::DrawingArea.new
-
-  area.signal_connect("expose_event") do
-
-    drawing = Gtk2SVG::DrawingInstructions.new area
-    drawing.render Gtk2SVG::Render.new(s).to_a
-
-  end
-
-  Gtk::Window.new.add(area).show_all
-  Gtk.main
+  app = Gtk2SVG::Main.new svg
 
 end
