@@ -4,6 +4,7 @@
 
 require 'gtk2'
 require 'dom_render'
+require 'svgle'
 
 
 # Description: Experimental gem to render SVG within an GTK2 application. 
@@ -60,7 +61,7 @@ module Gtk2SVG
       style = e2.style
       style[:stroke_width] = style.delete(:'stroke-width') || '3'
 
-      x1, y1, x2, y2 = %i(x y x2 y2).map{|x| h[x].to_i }
+      x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| h[x].to_i }
 
       [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
     end    
@@ -209,15 +210,16 @@ module Gtk2SVG
   
   class Main
     
-    attr_accessor :svg
+    attr_accessor :doc. :svg
     
     def initialize(svg)
       
       @svg = svg
+      @doc = Svgle.new(svg)
       @area = area = Gtk::DrawingArea.new
       
       area.signal_connect("expose_event") do      
-        a = Render.new(@svg).to_a
+        a = Render.new(@doc).to_a
         drawing = DrawingInstructions.new area
         drawing.render a
       end
@@ -228,6 +230,11 @@ module Gtk2SVG
     
     def refresh()
       @area.queue_draw
+    end
+    
+    def svg=(svg)
+      @svg = svg
+      @doc = Svgle.new(svg)
     end
     
   end
