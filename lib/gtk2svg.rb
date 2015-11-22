@@ -8,29 +8,7 @@ require 'svgle'
 
 
 # Description: Experimental gem to render SVG within an GTK2 application. 
-#           Currently it can only render rectangles along with the fill colour.
 
-
-module SVG
-  class Element
-
-    attr_reader :style
-
-    def initialize(attributes, style)
-
-      @h = {x: '0', y: '0'}.merge attributes 
-
-      @style = {fill: 'black'}
-      @style.merge!(style) if attributes[:style]
-
-    end
-
-    def attributes()
-      @h
-    end
-
-  end
-end
 
 module Gtk2SVG
 
@@ -42,10 +20,7 @@ module Gtk2SVG
     
     def ellipse(e, attributes, style)
 
-      e2 = SVG::Element.new attributes, style
-      h = e2.attributes
-      style = e2.style
-
+      h = attributes
 
       x, y= %i(cx cy).map{|x| h[x].to_i }
       width = h[:rx].to_i * 2
@@ -56,22 +31,16 @@ module Gtk2SVG
     
     def line(e, attributes, style)
 
-      e2 = SVG::Element.new attributes, style
-      h = e2.attributes
-      style = e2.style
       style[:stroke_width] = style.delete(:'stroke-width') || '3'
 
-      x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| h[x].to_i }
+      x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| attributes[x].to_i }
 
       [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
     end    
 
     def rect(e, attributes, style)
 
-      e2 = SVG::Element.new attributes, style
-      h = e2.attributes
-      style = e2.style
-
+      h = attributes
 
       x1, y1, width, height = %i(x y width height).map{|x| h[x].to_i }
       x2, y2, = x1 + width, y1 + height
@@ -81,12 +50,9 @@ module Gtk2SVG
     
     def text(e, attributes, style)
 
-      e2 = SVG::Element.new attributes, style
-      h = e2.attributes
-      style = e2.style.merge({font_size: '20'})
+      style.merge!({font_size: '20'})
 
-
-      x, y, fill = %i(x y fill).map{|x| h[x] }
+      x, y, fill = %i(x y fill).map{|x| attributes[x] }
       style.merge!({fill: fill})
 
       [:draw_layout, [x.to_i, y.to_i], e.text, style, render_all(e)]
