@@ -14,9 +14,16 @@ module Gtk2SVG
 
   class Render < DomRender
 
-    def svg(x, attributes, style)
-      [:window, render_all(x)]
-    end
+
+    def circle(e, attributes, style)
+
+      h = attributes
+
+      x, y= %i(cx cy).map{|x| h[x].to_i }
+      radius = h[:r].to_i * 2
+
+      [:draw_arc, [x, y, radius, radius], style, render_all(e)]
+    end       
     
     def ellipse(e, attributes, style)
 
@@ -47,6 +54,14 @@ module Gtk2SVG
 
       [:draw_rectangle, [x1, y1, x2, y2], style, render_all(e)]
     end
+    
+    def script(e, attributes, style)
+      [:script]
+    end        
+    
+    def svg(x, attributes, style)
+      [:window, render_all(x)]
+    end    
     
     def text(e, attributes, style)
 
@@ -122,6 +137,10 @@ module Gtk2SVG
     def render(a)
       draw a
     end
+    
+    def script(args)
+
+    end    
 
     private
 
@@ -176,6 +195,7 @@ module Gtk2SVG
   
   class Main
     
+    
     attr_accessor :doc, :svg
     attr_reader :width, :height
     
@@ -184,6 +204,7 @@ module Gtk2SVG
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
       @area = area = Gtk::DrawingArea.new
+      client_code = []
       
       window = Gtk::Window.new
       width, height = %i(width height).map{|x| @doc.root.attributes[x] }
@@ -199,10 +220,30 @@ module Gtk2SVG
         drawing.render a
       end
       
+      area.add_events(Gdk::Event::POINTER_MOTION_MASK) 
+
+      area.signal_connect('motion_notify_event') do |item,  event|
+
+        @doc.root.each_recursive do |x|
+          
+          eval x.text.unescape if x.name == 'script'
+          
+          if x.attributes[:onmousemove] and x.hotspot? event.x, event.y then
+            #onmousemove(event.x,event.y)
+            eval x.onmousemove()
+          end
+          
+        end
+      end      
+      
       window.add(area).show_all
       window.show_all.signal_connect("destroy"){Gtk.main_quit}
 
       Thread.new {Gtk.main  }
+    end
+    
+    def onmousemove(x,y)
+      
     end
     
     def refresh()
