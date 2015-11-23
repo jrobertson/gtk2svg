@@ -164,17 +164,17 @@ module Gtk2SVG
 
     end
 
-    def set_colour(fill)
+    def set_colour(c)
 
-      colour = case fill
+      colour = case c
       when /^rgb/
         regex = /rgb\((\d{1,3}), *(\d{1,3}), *(\d{1,3})\)$/
-        r, g, b = fill.match(regex).captures.map {|x| x.to_i * 257}
+        r, g, b = c.match(regex).captures.map {|x| x.to_i * 257}
         colour = Gdk::Color.new(r, g, b)
       when /^#/
-          Gdk::Color.parse(fill)
+          Gdk::Color.parse(c)
       else
-          Gdk::Color.parse(fill)
+          Gdk::Color.parse(c)
       end
       
       colormap = Gdk::Colormap.system
@@ -199,7 +199,7 @@ module Gtk2SVG
     attr_accessor :doc, :svg
     attr_reader :width, :height
     
-    def initialize(svg)
+    def initialize(svg, irb: false)
       
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
@@ -207,14 +207,22 @@ module Gtk2SVG
       client_code = []
       
       window = Gtk::Window.new
-      width, height = %i(width height).map{|x| @doc.root.attributes[x] }
+      @width, @height = %i(width height).map{|x| @doc.root.attributes[x].to_i }
       
-      if width and height then
-        @width, @height = width.to_i, height.to_i
+      if @width and @height then
         window.set_default_size(@width, @height)
       end
       
       area.signal_connect("expose_event") do      
+
+        Thread.new do
+          
+          @doc.root.each_recursive do |x|          
+            eval x.text.unescape if x.name == 'script'
+          end
+          
+        end
+        
         a = Render.new(@doc).to_a
         drawing = DrawingInstructions.new area
         drawing.render a
@@ -225,21 +233,34 @@ module Gtk2SVG
       area.signal_connect('motion_notify_event') do |item,  event|
 
         @doc.root.each_recursive do |x|
-          
-          eval x.text.unescape if x.name == 'script'
-          
+                    
           if x.attributes[:onmousemove] and x.hotspot? event.x, event.y then
             #onmousemove(event.x,event.y)
             eval x.onmousemove()
           end
           
         end
+      end
+
+      area.add_events(Gdk::Event::BUTTON_PRESS_MASK) 
+
+      area.signal_connect "button_press_event" do |item,event| 
+
+        @doc.root.each_recursive do |x|
+                    
+          if x.attributes[:onmousedown] and x.hotspot? event.x, event.y then
+
+            eval x.onmousedown()
+            
+          end
+          
+        end        
       end      
       
       window.add(area).show_all
       window.show_all.signal_connect("destroy"){Gtk.main_quit}
 
-      Thread.new {Gtk.main  }
+      irb ? Thread.new {Gtk.main  } : Gtk.main
     end
     
     def onmousemove(x,y)
