@@ -1,3 +1,25 @@
+# Gtk2SVG: An onmousedown example
+
+    require 'gtk2svg'
+
+
+    s =<<SVG
+    <svg width="400" height="110">
+      <script>
+        def hello()
+          puts 'hello world'
+        end
+      </script>
+      <rect width="300" height="100" onmousedown="hello()" style="fill:rgb(0,0,255);stroke-width:3;stroke:rgb(0,0,0)" />
+    </svg>
+    SVG
+
+    app = Gtk2SVG::Main.new s, irb: true
+
+In the above example when the left mouse button is pressed while over the blue rectangle, the message 'hello world' is displayed in the command-line.
+
+-----------------------------------
+
 # Experimenting with creating an SVG app using the Gtk2SVG gem
 
 
