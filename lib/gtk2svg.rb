@@ -7,9 +7,6 @@ require 'dom_render'
 require 'svgle'
 
 
-# Description: Experimental gem to render SVG within an GTK2 application. 
-
-
 module Gtk2SVG
 
   class Render < DomRender
@@ -44,6 +41,14 @@ module Gtk2SVG
 
       [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
     end    
+
+    def polygon(e, attributes, style)
+
+      points = attributes[:points].split(/\s+/). \
+                                       map {|x| x.split(/\s*,\s*/).map(&:to_i)}
+
+      [:draw_polygon, points, style, render_all(e)]
+    end       
 
     def rect(e, attributes, style)
 
@@ -105,6 +110,17 @@ module Gtk2SVG
                                     Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
       @area.window.draw_line(gc, x1, y1, x2, y2)
     end    
+    
+    def draw_polygon(args)
+
+      points, style = args
+
+
+      gc = gc_ini(fill: style[:fill] || :none, stroke: style[:stroke] || :none)
+      gc.set_line_attributes(style[:stroke_width].to_i, Gdk::GC::LINE_SOLID, \
+                                    Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
+      @area.window.draw_polygon(gc, 1, points)
+    end       
 
     def draw_rectangle(args)
 
