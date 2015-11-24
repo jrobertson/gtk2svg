@@ -6,6 +6,8 @@ require 'gtk2'
 require 'dom_render'
 require 'svgle'
 
+# Description: Experimental gem to render SVG within an GTK2 application. 
+
 
 module Gtk2SVG
 
@@ -48,7 +50,15 @@ module Gtk2SVG
                                        map {|x| x.split(/\s*,\s*/).map(&:to_i)}
 
       [:draw_polygon, points, style, render_all(e)]
-    end       
+    end
+
+    def polyline(e, attributes, style)
+
+      points = attributes[:points].split(/\s+/). \
+                                       map {|x| x.split(/\s*,\s*/).map(&:to_i)}
+
+      [:draw_polyline, points, style, render_all(e)]
+    end           
 
     def rect(e, attributes, style)
 
@@ -106,7 +116,7 @@ module Gtk2SVG
 
       x1, y1, x2, y2 = coords
       gc = gc_ini(stroke: style[:stroke] || :none)
-      gc.set_line_attributes(style[:stroke_width].to_i, Gdk::GC::LINE_SOLID, \
+      gc.set_line_attributes(style[:'stroke-width'].to_i, Gdk::GC::LINE_SOLID, \
                                     Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
       @area.window.draw_line(gc, x1, y1, x2, y2)
     end    
@@ -117,10 +127,22 @@ module Gtk2SVG
 
 
       gc = gc_ini(fill: style[:fill] || :none, stroke: style[:stroke] || :none)
-      gc.set_line_attributes(style[:stroke_width].to_i, Gdk::GC::LINE_SOLID, \
+      gc.set_line_attributes(style[:'stroke-width'].to_i, Gdk::GC::LINE_SOLID, \
                                     Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
       @area.window.draw_polygon(gc, 1, points)
     end       
+    
+    def draw_polyline(args)
+      puts 'inside sraw_polying;'
+      points, style = args
+      puts 'style: '  + style.inspect
+
+
+      gc = gc_ini(fill: style[:fill] || :none, stroke: style[:stroke] || :none)
+      gc.set_line_attributes(style[:'stroke-width'].to_i, Gdk::GC::LINE_SOLID, \
+                                    Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
+      @area.window.draw_lines(gc, points)
+    end      
 
     def draw_rectangle(args)
 
@@ -202,7 +224,12 @@ module Gtk2SVG
     def gc_ini(fill: nil, stroke: nil)
       gc = Gdk::GC.new(@area.window)
       colour = fill || stroke
-      gc.set_foreground(set_colour(colour)) unless colour == :none
+      puts 'colur : ' + colour.inspect
+
+      unless colour == :none or colour == 'none'
+        gc.set_foreground(set_colour(colour)) 
+      end
+      
       gc
     end
 
