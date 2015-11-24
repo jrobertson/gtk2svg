@@ -9,12 +9,15 @@ require 'svgle'
 # Description: Experimental gem to render SVG within an GTK2 application. 
 
 
+
 module Gtk2SVG
 
   class Render < DomRender
 
 
-    def circle(e, attributes, style)
+    def circle(e, attributes, raw_style)
+
+      style = style_filter(attributes).merge(raw_style)
 
       h = attributes
 
@@ -24,8 +27,9 @@ module Gtk2SVG
       [:draw_arc, [x, y, radius, radius], style, render_all(e)]
     end       
     
-    def ellipse(e, attributes, style)
+    def ellipse(e, attributes, raw_style)
 
+      style = style_filter(attributes).merge(raw_style)
       h = attributes
 
       x, y= %i(cx cy).map{|x| h[x].to_i }
@@ -35,33 +39,36 @@ module Gtk2SVG
       [:draw_arc, [x, y, width, height], style, render_all(e)]
     end    
     
-    def line(e, attributes, style)
+    def line(e, attributes, raw_style)
 
-      style[:stroke_width] = style.delete(:'stroke-width') || '3'
+      style = style_filter(attributes).merge(raw_style)
 
       x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| attributes[x].to_i }
 
       [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
     end    
 
-    def polygon(e, attributes, style)
+    def polygon(e, attributes, raw_style)
 
+      style = style_filter(attributes).merge(raw_style)
       points = attributes[:points].split(/\s+/). \
                                        map {|x| x.split(/\s*,\s*/).map(&:to_i)}
 
       [:draw_polygon, points, style, render_all(e)]
     end
 
-    def polyline(e, attributes, style)
+    def polyline(e, attributes, raw_style)
 
+      style = style_filter(attributes).merge(raw_style)
       points = attributes[:points].split(/\s+/). \
                                        map {|x| x.split(/\s*,\s*/).map(&:to_i)}
 
-      [:draw_polyline, points, style, render_all(e)]
+      [:draw_lines, points, style, render_all(e)]
     end           
 
-    def rect(e, attributes, style)
+    def rect(e, attributes, raw_style)
 
+      style = style_filter(attributes).merge(raw_style)
       h = attributes
 
       x1, y1, width, height = %i(x y width height).map{|x| h[x].to_i }
@@ -78,15 +85,25 @@ module Gtk2SVG
       [:window, render_all(x)]
     end    
     
-    def text(e, attributes, style)
+    def text(e, attributes, raw_style)
 
+      style = style_filter(attributes).merge(raw_style)
       style.merge!({font_size: '20'})
 
-      x, y, fill = %i(x y fill).map{|x| attributes[x] }
-      style.merge!({fill: fill})
+      x, y = %i(x y).map{|x| attributes[x].to_i }
 
-      [:draw_layout, [x.to_i, y.to_i], e.text, style, render_all(e)]
+      [:draw_layout, [x, y], e.text, style, render_all(e)]
     end    
+    
+    private
+    
+    def style_filter(attributes)
+      
+      %i(stroke stroke-width fill).inject({}) do |r,x|
+        attributes.has_key?(x) ? r.merge(x => attributes[x]) : r          
+      end
+      
+    end
 
   end
 
@@ -132,11 +149,9 @@ module Gtk2SVG
       @area.window.draw_polygon(gc, 1, points)
     end       
     
-    def draw_polyline(args)
-      puts 'inside sraw_polying;'
-      points, style = args
-      puts 'style: '  + style.inspect
+    def draw_lines(args)
 
+      points, style = args
 
       gc = gc_ini(fill: style[:fill] || :none, stroke: style[:stroke] || :none)
       gc.set_line_attributes(style[:'stroke-width'].to_i, Gdk::GC::LINE_SOLID, \
@@ -224,7 +239,6 @@ module Gtk2SVG
     def gc_ini(fill: nil, stroke: nil)
       gc = Gdk::GC.new(@area.window)
       colour = fill || stroke
-      puts 'colur : ' + colour.inspect
 
       unless colour == :none or colour == 'none'
         gc.set_foreground(set_colour(colour)) 
