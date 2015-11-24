@@ -81,8 +81,15 @@ module Gtk2SVG
       [:script]
     end        
     
-    def svg(x, attributes, style)
-      [:window, render_all(x)]
+    def svg(e, attributes, raw_style)
+
+      style = style_filter(attributes).merge(raw_style)
+      
+      style[:fill] = style.delete :'background-color'
+      h = attributes
+      width, height = %i(width height).map{|x| h[x].to_i }
+      
+      [:draw_rectangle, [0, 0, width, height], style, render_all(e)]
     end    
     
     def text(e, attributes, raw_style)
@@ -164,6 +171,7 @@ module Gtk2SVG
       coords, style = args
 
       x1, y1, x2, y2 = coords
+
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_rectangle(gc, 1, x1, y1, x2, y2)
     end
@@ -188,7 +196,8 @@ module Gtk2SVG
     end
 
     def render(a)
-      draw a
+      method(a[0]).call(args=a[1..2])
+      draw a[3]
     end
     
     def script(args)
@@ -198,7 +207,7 @@ module Gtk2SVG
     private
 
     def draw(a)
-
+      
       a.each do |rawx|
 
         x, *remaining = rawx
@@ -260,6 +269,7 @@ module Gtk2SVG
       
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
+      
       @area = area = Gtk::DrawingArea.new
       client_code = []
       
@@ -281,6 +291,7 @@ module Gtk2SVG
         end
         
         a = Render.new(@doc).to_a
+
         drawing = DrawingInstructions.new area
         drawing.render a
       end
