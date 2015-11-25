@@ -6,7 +6,7 @@ require 'gtk2'
 require 'dom_render'
 require 'svgle'
 
-# Description: Experimental gem to render SVG within an GTK2 application. 
+# Description: Experimental gem to render SVG within a GTK2 application. 
 
 
 
@@ -282,14 +282,8 @@ module Gtk2SVG
       
       area.signal_connect("expose_event") do      
 
-        Thread.new do
-          
-          @doc.root.each_recursive do |x|          
-            eval x.text.unescape if x.name == 'script'
-          end
-          
-        end
-        
+        Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
+
         a = Render.new(@doc).to_a
 
         drawing = DrawingInstructions.new area
@@ -300,12 +294,9 @@ module Gtk2SVG
 
       area.signal_connect('motion_notify_event') do |item,  event|
 
-        @doc.root.each_recursive do |x|
+        @doc.root.xpath('//*[@onmousemove]').each do |x|
                     
-          if x.attributes[:onmousemove] and x.hotspot? event.x, event.y then
-            #onmousemove(event.x,event.y)
-            eval x.onmousemove()
-          end
+          eval x.onmousemove() if x.hotspot? event.x, event.y
           
         end
       end
@@ -314,13 +305,9 @@ module Gtk2SVG
 
       area.signal_connect "button_press_event" do |item,event| 
 
-        @doc.root.each_recursive do |x|
+        @doc.root.xpath('//*[@onmousedown]').each do |x|
                     
-          if x.attributes[:onmousedown] and x.hotspot? event.x, event.y then
-
-            eval x.onmousedown()
-            
-          end
+          eval x.onmousedown() if x.hotspot? event.x, event.y
           
         end        
       end      
@@ -336,6 +323,7 @@ module Gtk2SVG
     end
     
     def refresh()
+      @dirty = true
       @area.queue_draw
     end
     
