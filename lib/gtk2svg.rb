@@ -185,8 +185,8 @@ module Gtk2SVG
       
       layout = Pango::Layout.new(Gdk::Pango.context)
       layout.font_description = Pango::FontDescription.\
-                                             new('Sans ' + style[:font_size])      
-      layout.text = text
+                                             new('Sans ' + style[:'font-size'])
+      layout.text = text.strip
             
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_layout(gc, x, y, layout)
@@ -280,14 +280,21 @@ module Gtk2SVG
         window.set_default_size(@width, @height)
       end
       
+      @dirty = true
+      
       area.signal_connect("expose_event") do      
 
-        Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
+        if @dirty then
+          
+          Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
 
-        a = Render.new(@doc).to_a
-
+          @instructions = Gtk2SVG::Render.new(@doc).to_a
+        end
+        
         drawing = DrawingInstructions.new area
-        drawing.render a
+        drawing.render @instructions
+        @dirty = false
+        
       end
       
       area.add_events(Gdk::Event::POINTER_MOTION_MASK) 
