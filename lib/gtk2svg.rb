@@ -85,7 +85,7 @@ module Gtk2SVG
 
       style = style_filter(attributes).merge(raw_style)
       
-      style[:fill] = style.delete :'background-color'
+      # jr051216 style[:fill] = style.delete :'background-color'
       h = attributes
       width, height = %i(width height).map{|x| h[x].to_i }
       
@@ -130,6 +130,7 @@ module Gtk2SVG
       dimensions, style = args
 
       x, y, width, height = dimensions
+
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_arc(gc, 1, x, y, width, height, 0, 64 * 360)
     end    
@@ -139,6 +140,7 @@ module Gtk2SVG
       coords, style = args
 
       x1, y1, x2, y2 = coords
+
       gc = gc_ini(stroke: style[:stroke] || :none)
       gc.set_line_attributes(style[:'stroke-width'].to_i, Gdk::GC::LINE_SOLID, \
                                     Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
