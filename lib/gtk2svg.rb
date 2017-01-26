@@ -400,6 +400,7 @@ module Gtk2SVG
       
       GLib::Timeout.add(duration) do 
         yield
+        @area.queue_draw
         loopx
       end
 
