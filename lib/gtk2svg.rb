@@ -9,7 +9,6 @@ require 'svgle'
 # Description: Experimental gem to render SVG within a GTK2 application. 
 
 
-
 module Gtk2SVG
 
   class Render < DomRender
@@ -46,6 +45,17 @@ module Gtk2SVG
       x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| attributes[x].to_i }
 
       [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
+    end   
+    
+    def image(e, attributes, raw_style)
+
+      style = style_filter(attributes).merge(raw_style)
+      h = attributes
+
+      x, y, width, height = %i(x y width height).map{|x| h[x] ? h[x].to_i : nil }
+      src = h[:'xlink:href']
+
+      [:draw_image, [x, y, width, height], src, style, render_all(e)]
     end    
 
     def polygon(e, attributes, raw_style)
@@ -119,9 +129,10 @@ module Gtk2SVG
     attr_accessor :area
 
 
-    def initialize(area=nil)
+    def initialize(area=nil, window=nil)
 
-      @area = area if area
+      @area = area
+      @window = window
 
     end
     
@@ -134,6 +145,25 @@ module Gtk2SVG
       gc = gc_ini(fill: style[:fill] || :none)
       @area.window.draw_arc(gc, 1, x, y, width, height, 0, 64 * 360)
     end    
+    
+    def draw_image(args)
+
+      dimensions, src, style = args
+
+      x, y, width, height = dimensions
+
+      gc = gc_ini(fill: style[:fill] || :none)
+      img = GdkPixbuf::Pixbuf.new(file: src)
+      
+      x ||= 0
+      y ||= 0
+      width ||= img.width
+      height ||= img.height
+      
+      @area.window.draw_pixbuf(gc, img, 0, 0, x, y, width, height, 
+                               Gdk::RGB::DITHER_NONE, 0, 0)
+
+    end      
     
     def draw_line(args)
 
@@ -167,6 +197,7 @@ module Gtk2SVG
                                     Gdk::GC::CAP_NOT_LAST, Gdk::GC::JOIN_MITER)
       @area.window.draw_lines(gc, points)
     end      
+     
 
     def draw_rectangle(args)
 
@@ -271,8 +302,18 @@ module Gtk2SVG
       
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
-      
+
       @area = area = Gtk::DrawingArea.new
+      
+      doc = @doc
+      
+      def @doc.element_by_id(id)
+        self.root.element("//*[@id='#{id}']")
+      end            
+      
+
+      
+
       client_code = []
       
       window = Gtk::Window.new
@@ -284,8 +325,13 @@ module Gtk2SVG
       
       @dirty = true
       
-      area.signal_connect("expose_event") do      
+      @doc.root.xpath('//script').each {|x| eval x.text.unescape }
 
+      x1 = 150      
+      
+      area.signal_connect("expose_event") do      
+        y1 = 30; x2 = 200; y2 = 70
+          area.window.draw_rectangle(area.style.fg_gc(area.state), 1, x1, y1, x2, y2)
         if @dirty then
           
           Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
@@ -322,6 +368,20 @@ module Gtk2SVG
       end      
       
       window.add(area).show_all
+
+      Thread.new do
+        @doc.root.xpath('//*[@onload]').each do |x|
+                    
+          eval x.onload()
+          
+        end
+      end
+      
+      #Thread.new do
+      #  3.times { x1 -= 1; @area.queue_draw; sleep 0.1}
+      #end
+      sleep 0.01
+      #@area.queue_draw; sleep 0.01
       window.show_all.signal_connect("destroy"){Gtk.main_quit}
 
       irb ? Thread.new {Gtk.main  } : Gtk.main
@@ -329,16 +389,20 @@ module Gtk2SVG
     
     def onmousemove(x,y)
       
-    end
-    
-    def refresh()
-      @dirty = true
-      @area.queue_draw
-    end
+    end    
     
     def svg=(svg)
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
+    end
+    
+    def timeout(duration, loopx=true)
+      
+      GLib::Timeout.add(duration) do 
+        yield
+        loopx
+      end
+
     end
     
   end

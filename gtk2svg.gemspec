@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'gtk2svg'
-  s.version = '0.3.13'
+  s.version = '0.3.14'
   s.summary = 'Renders SVG using GTK2'
   s.authors = ['James Robertson']
   s.files = Dir['lib/gtk2svg.rb']
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.signing_key = '../privatekeys/gtk2svg.pem'
   s.cert_chain  = ['gem-public_cert.pem']
   s.license = 'MIT'
-  s.email = 'james@r0bertson.co.uk'
+  s.email = 'james@jamesrobertson.eu'
   s.homepage = 'https://github.com/jrobertson/gtk2svg'
   s.required_ruby_version = '>= 2.1.0'
 end
