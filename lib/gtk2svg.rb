@@ -326,12 +326,9 @@ module Gtk2SVG
       @dirty = true
       
       @doc.root.xpath('//script').each {|x| eval x.text.unescape }
-
-      x1 = 150      
       
       area.signal_connect("expose_event") do      
-        y1 = 30; x2 = 200; y2 = 70
-          area.window.draw_rectangle(area.style.fg_gc(area.state), 1, x1, y1, x2, y2)
+
         if @dirty then
           
           Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
@@ -369,19 +366,17 @@ module Gtk2SVG
       
       window.add(area).show_all
 
-      Thread.new do
-        @doc.root.xpath('//*[@onload]').each do |x|
-                    
-          eval x.onload()
-          
-        end
+
+      @doc.root.xpath('//*[@onload]').each do |x|
+                  
+        eval x.onload()
+        
       end
       
       #Thread.new do
       #  3.times { x1 -= 1; @area.queue_draw; sleep 0.1}
       #end
-      sleep 0.01
-      #@area.queue_draw; sleep 0.01
+
       window.show_all.signal_connect("destroy"){Gtk.main_quit}
 
       irb ? Thread.new {Gtk.main  } : Gtk.main
