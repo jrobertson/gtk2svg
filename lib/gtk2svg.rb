@@ -153,16 +153,18 @@ module Gtk2SVG
       x, y, width, height = dimensions
 
       gc = gc_ini(fill: style[:fill] || :none)
-      img = GdkPixbuf::Pixbuf.new(file: src)
       
-      x ||= 0
-      y ||= 0
-      width ||= img.width
-      height ||= img.height
+      if File.exists? src then
+        img = GdkPixbuf::Pixbuf.new(file: src)
       
-      @area.window.draw_pixbuf(gc, img, 0, 0, x, y, width, height, 
-                               Gdk::RGB::DITHER_NONE, 0, 0)
-
+        x ||= 0
+        y ||= 0
+        width ||= img.width
+        height ||= img.height
+        
+        @area.window.draw_pixbuf(gc, img, 0, 0, x, y, width, height, 
+                                Gdk::RGB::DITHER_NONE, 0, 0)
+      end
     end      
     
     def draw_line(args)
