@@ -300,7 +300,7 @@ module Gtk2SVG
     attr_accessor :doc, :svg
     attr_reader :width, :height
     
-    def initialize(svg, irb: false)
+    def initialize(svg, irb: false, title: nil)
       
       @svg = svg
       @doc = Svgle.new(svg, callback: self)
@@ -318,7 +318,7 @@ module Gtk2SVG
 
       client_code = []
       
-      window = Gtk::Window.new
+      window = Gtk::Window.new title
       @width, @height = %i(width height).map{|x| @doc.root.attributes[x].to_i }
       
       if @width and @height then
