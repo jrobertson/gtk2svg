@@ -9,6 +9,7 @@ require 'svgle'
 # Description: Experimental gem to render SVG within a GTK2 application. 
 
 
+
 module Gtk2SVG
 
   class Render < DomRender
@@ -125,14 +126,14 @@ module Gtk2SVG
   end
 
   class DrawingInstructions
-
+    using ColouredText
+    
     attr_accessor :area
 
 
-    def initialize(area=nil, window=nil)
+    def initialize(area=nil, window=nil, debug: false)
 
-      @area = area
-      @window = window
+      @area, @window, @debug = area, window, debug     
 
     end
     
@@ -295,15 +296,15 @@ module Gtk2SVG
   end
   
   class Main
-    
+    using ColouredText
     
     attr_accessor :doc, :svg
     attr_reader :width, :height
     
-    def initialize(svg, irb: false, title: nil)
+    def initialize(svg, irb: false, title: 'Window', debug: @debug)
       
-      @svg = svg
-      @doc = Svgle.new(svg, callback: self)
+      @svg, @debug = svg, debug
+      @doc = Svgle.new(svg, callback: self, debug: debug)
 
       @area = area = Gtk::DrawingArea.new
       
@@ -318,6 +319,7 @@ module Gtk2SVG
 
       client_code = []
       
+      puts ('title: ' + title.inspect).debug if @debug
       window = Gtk::Window.new title
       @width, @height = %i(width height).map{|x| @doc.root.attributes[x].to_i }
       
@@ -335,10 +337,10 @@ module Gtk2SVG
           
           Thread.new { @doc.root.xpath('//script').each {|x| eval x.text.unescape } }
 
-          @instructions = Gtk2SVG::Render.new(@doc).to_a
+          @instructions = Gtk2SVG::Render.new(@doc, debug: debug).to_a
         end
         
-        drawing = DrawingInstructions.new area
+        drawing = DrawingInstructions.new area, debug: debug
         drawing.render @instructions
         @dirty = false
         
