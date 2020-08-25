@@ -15,113 +15,94 @@ module Gtk2SVG
   class Render < DomRender
 
 
-    def circle(e, attributes, raw_style)
-
-      style = style_filter(attributes).merge(raw_style)
+    def circle(e, attributes)
 
       h = attributes
 
       x, y= %i(cx cy).map{|x| h[x].to_i }
       radius = h[:r].to_i * 2
 
-      [:draw_arc, [x, y, radius, radius], style, render_all(e)]
+      [:draw_arc, [x, y, radius, radius], attributes, render_all(e)]
     end       
     
-    def ellipse(e, attributes, raw_style)
+    def ellipse(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
       h = attributes
 
       x, y= %i(cx cy).map{|x| h[x].to_i }
       width = h[:rx].to_i * 2
       height = h[:ry].to_i * 2
 
-      [:draw_arc, [x, y, width, height], style, render_all(e)]
+      [:draw_arc, [x, y, width, height], attributes, render_all(e)]
     end    
     
-    def line(e, attributes, raw_style)
+    def line(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
 
       x1, y1, x2, y2 = %i(x1 y1 x2 y2).map{|x| attributes[x].to_i }
 
-      [:draw_line, [x1, y1, x2, y2], style, render_all(e)]
+      [:draw_line, [x1, y1, x2, y2], attributes, render_all(e)]
     end   
     
-    def image(e, attributes, raw_style)
+    def image(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
       h = attributes
 
       x, y, width, height = %i(x y width height).map{|x| h[x] ? h[x].to_i : nil }
       src = h[:'xlink:href']
 
-      [:draw_image, [x, y, width, height], src, style, render_all(e)]
+      [:draw_image, [x, y, width, height], src, attributes, render_all(e)]
     end    
 
-    def polygon(e, attributes, raw_style)
+    def polygon(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
       points = attributes[:points].split(/\s+/). \
                                        map {|x| x.split(/\s*,\s*/).map(&:to_i)}
 
-      [:draw_polygon, points, style, render_all(e)]
+      [:draw_polygon, points, attributes, render_all(e)]
     end
 
-    def polyline(e, attributes, raw_style)
+    def polyline(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
       points = attributes[:points].split(/\s+/). \
                                        map {|x| x.split(/\s*,\s*/).map(&:to_i)}
 
-      [:draw_lines, points, style, render_all(e)]
+      [:draw_lines, points, attributes, render_all(e)]
     end           
 
-    def rect(e, attributes, raw_style)
+    def rect(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
+      puts 'inside rect'
       h = attributes
 
       x1, y1, width, height = %i(x y width height).map{|x| h[x].to_i }
       x2, y2, = x1 + width, y1 + height
 
-      [:draw_rectangle, [x1, y1, x2, y2], style, render_all(e)]
+      [:draw_rectangle, [x1, y1, x2, y2],  attributes, render_all(e)]
     end
     
-    def script(e, attributes, style)
+    def script(e, attributes)
       [:script]
     end        
     
-    def svg(e, attributes, raw_style)
+    def svg(e, attributes)
 
-      style = style_filter(attributes).merge(raw_style)
       
       # jr051216 style[:fill] = style.delete :'background-color'
       h = attributes
       width, height = %i(width height).map{|x| h[x].to_i }
       
-      [:draw_rectangle, [0, 0, width, height], style, render_all(e)]
+      [:draw_rectangle, [0, 0, width, height], attributes, render_all(e)]
     end    
     
-    def text(e, attributes, raw_style)
-
-      style = style_filter(attributes).merge(raw_style)
-      style.merge!({font_size: '20'})
+    def text(e, attributes)
 
       x, y = %i(x y).map{|x| attributes[x].to_i }
 
-      [:draw_layout, [x, y], e.text, style, render_all(e)]
+      [:draw_layout, [x, y], e.text, attributes, render_all(e)]
     end    
     
-    private
-    
-    def style_filter(attributes)
-      
-      %i(stroke stroke-width fill).inject({}) do |r,x|
-        attributes.has_key?(x) ? r.merge(x => attributes[x]) : r          
-      end
-      
-    end
+
 
   end
 
@@ -204,7 +185,9 @@ module Gtk2SVG
 
     def draw_rectangle(args)
 
-      coords, style = args
+      puts 'inside draw_rectangle' if @debug
+      
+      coords, style, e = args
 
       x1, y1, x2, y2 = coords
 
@@ -232,7 +215,16 @@ module Gtk2SVG
     end
 
     def render(a)
+      
+      if @debug then
+        puts 'inside gtk2svg render '.info 
+        puts 'a: ' + a.inspect
+      end
+      
       method(a[0]).call(args=a[1..2])
+      puts 'after method' if @debug
+      return unless a[3].any?
+      
       draw a[3]
     end
     
@@ -301,7 +293,7 @@ module Gtk2SVG
     attr_accessor :doc, :svg
     attr_reader :width, :height
     
-    def initialize(svg, irb: false, title: 'Window', debug: @debug)
+    def initialize(svg, irb: false, title: 'window', debug: @debug)
       
       @svg, @debug = svg, debug
       @doc = Svgle.new(svg, callback: self, debug: debug)
@@ -388,7 +380,10 @@ module Gtk2SVG
     
     def onmousemove(x,y)
       
-    end    
+    end
+
+    def refresh()    
+    end
     
     def svg=(svg)
       @svg = svg
